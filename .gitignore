@@ -33,6 +33,7 @@ conf.d/open-webui.conf
 .Trashes
 ehthumbs.db
 Thumbs.db
+.git
 
 # Editor files
 .vscode/
