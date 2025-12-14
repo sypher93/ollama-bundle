@@ -132,8 +132,41 @@ install_nvidia_toolkit() {
     nvidia-ctk runtime configure --runtime=docker >> "$LOG_FILE" 2>&1 || \
         error_exit "Failed to configure NVIDIA runtime"
     
-    systemctl restart docker >> "$LOG_FILE" 2>&1 || \
-        error_exit "Failed to restart Docker"
+    # Try to restart Docker with different methods
+    log "Restarting Docker service..."
+    if systemctl is-active --quiet docker.service 2>/dev/null; then
+        # Docker installed via systemd
+        systemctl restart docker >> "$LOG_FILE" 2>&1 || \
+            log_warning "Failed to restart Docker via systemctl, trying alternative methods..."
+    elif systemctl is-active --quiet docker.socket 2>/dev/null; then
+        # Docker socket-based activation
+        systemctl restart docker.socket >> "$LOG_FILE" 2>&1 || \
+            log_warning "Failed to restart Docker socket"
+    elif command -v snap &> /dev/null && snap list docker &> /dev/null; then
+        # Docker installed via snap
+        log "Docker installed via snap, restarting..."
+        snap restart docker >> "$LOG_FILE" 2>&1 || \
+            log_warning "Failed to restart Docker snap"
+    else
+        # Docker Desktop or other installation
+        log_warning "Docker not found as systemd service or snap"
+        log_warning "Please restart Docker manually:"
+        log_warning "  - Docker Desktop: Restart from the app"
+        log_warning "  - Or run: sudo pkill -SIGHUP dockerd"
+        log_warning ""
+        read -p "Press Enter after restarting Docker, or 's' to skip and continue [Enter/s]: " restart_choice
+        if [[ "$restart_choice" =~ ^[Ss]$ ]]; then
+            log "Skipping Docker restart, continuing installation..."
+        fi
+    fi
+    
+    # Verify Docker is running
+    if docker info &> /dev/null; then
+        log "✓ Docker is running"
+    else
+        log_warning "Docker may not be running properly"
+        log_warning "You may need to restart it manually after installation"
+    fi
     
     log "✓ NVIDIA Container Toolkit installed and configured"
 }
