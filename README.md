@@ -4,7 +4,7 @@
 
 <a href="https://ibb.co/vCQ6Cc4j"><img src="https://i.ibb.co/qLW3LDYr/ollama-bundle-banner-sypher93.jpg" alt="ollama-bundle-banner-sypher93" border="0"></a>
 
-## ✨ Features
+## Features
 
 - 🔧 **Automated installation** - Single script deploys everything
 - 🐳 **Docker Compose** - Nginx + OpenWebUI + Ollama in one stack
@@ -12,16 +12,17 @@
 - 🎮 **GPU acceleration** - Optional NVIDIA GPU support
 - 📦 **Modular architecture** - Easy to customize and maintain
 
-## 📋 Prerequisites
+## Prerequisites
 
-- **OS**: Debian 12+ or Ubuntu 22.04+ (Tested on Debian Trixie and Ubuntu Server 24.04)
+- **OS**: Debian 12+ or Ubuntu 22.04+ (Tested on Debian 13 / Ubuntu Server 24.04)
 - **Access**: Root or sudo privileges
 - **CPU**: 4+ Cores
 - **Disk**: 50GB+ free space
 - **RAM**: 8GB+ recommended
 - **GPU** (optional): NVIDIA GPU with drivers installed
+- **Network**: Open ports 80 (HTTP) and/or 443 (HTTPS)
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Clone repository
@@ -43,16 +44,20 @@ sudo ./install.sh
 **Advanced Mode** (HTTPS)
 - Production-ready with SSL
 - Self-signed certificates
-- HTTP → HTTPS redirect
+- HTTP → HTTPS redirect with TLS 1.3
 - Enhanced security headers
 
 Trivy scan (optional) on the Docker images used during installation on both options, output of this scan is recorded in `installation.log`.
 
-## 🎯 Post-Installation
+## Post-Installation
 
 If the installation went smoothly, you should see this result :
 
-<a href="https://imgbb.com/"><img src="https://i.ibb.co/tpZGBQ8Y/install-success-ollama-bundle.png" alt="install success ollama bundle" border="0"></a>
+<a href="https://imgbb.com/"><img src="https://i.ibb.co/gbxGkKmh/ollama-bundle-installer-success-sypher93.png" alt="ollama bundle installer success sypher93" border="0"></a>
+
+**Seamlessly Switching from HTTP to HTTPS:**
+
+Start the installation over HTTPS at any time by rerunning `sudo ./install.sh` and choosing option 2 (Advanced HTTPS); the installer will detect your existing HTTP deployment, switch it to HTTPS without redownloading the containers, generate an SSL certificate, and add the secure Nginx configuration automatically.
 
 ### 1. Access OpenWebUI
 
@@ -97,6 +102,17 @@ Popular models:
 
 ## 🔧 Management
 
+### Monitoring GPU Usage
+
+Run `watch -n 1 nvidia-smi` to monitor GPU utilization, memory usage, and temperature every second. This displays live metrics like VRAM allocation during inference, helping detect bottlenecks or overheating.
+
+### Monitoring System Resources
+
+Use `htop` (install via your package manager if needed, e.g., `sudo apt install htop`) to track CPU, RAM, and process details interactively. Sort by CPU or memory to spot high usage from the LLM process. 
+Press F6 to customize views.
+
+<a href="https://ibb.co/G3nFBLbP"><img src="https://i.ibb.co/XkjVNgvJ/Monitoring-GPU-Usage-LLM-OLLAMA.png" alt="Monitoring-GPU-Usage-LLM-OLLAMA" border="0"></a>
+
 ### View Logs
 ```bash
 docker compose logs -f          # All services
@@ -121,7 +137,7 @@ docker compose pull
 docker compose up -d
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ollama-bundle/
@@ -135,7 +151,21 @@ ollama-bundle/
 └── docker-compose.yml     # Generated compose file
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
+
+**Docker MUST be installed via apt, NOT snap!**
+
+Docker installed via snap has critical limitations:
+- ❌ NVIDIA GPU support doesn't work
+- ❌ Volume mount restrictions
+- ❌ Limited systemd integration
+
+The script will detect snap Docker and offer to reinstall it properly via apt.
+
+**If you have Docker snap, remove it first:**
+```bash
+sudo snap remove docker
+```
 
 ### File permissions and mount points
 
@@ -164,15 +194,15 @@ Edit ports in `docker-compose.yml` or stop conflicting services:
 sudo systemctl stop apache2  # or nginx
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome! Please feel free to submit issues or pull requests.
 
-## 📄 License
+## License
 
 MIT License - See [LICENSE](LICENSE) file for details
 
-## 👤 Author
+## Author
 
 **sypher93**
 - GitHub: [@sypher93](https://github.com/sypher93)
