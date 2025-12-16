@@ -46,16 +46,16 @@ generate_compose() {
             gpu_indices+="$i"
         done
         
-        gpu_config="    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-      - CUDA_VISIBLE_DEVICES=$gpu_indices
-    deploy:
+        gpu_config="    deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: $gpu_count
-              capabilities: [gpu]"
+              capabilities: [gpu]
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - CUDA_VISIBLE_DEVICES=$gpu_indices"
     else
         gpu_config="    environment:
       - OLLAMA_HOST=0.0.0.0:11434"
