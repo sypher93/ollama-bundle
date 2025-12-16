@@ -489,39 +489,34 @@ verify_installation() {
     echo ""
     
     # Wait for Ollama
-    log "Checking Ollama (port 11434)..."
+    log "Checking Ollama..."
     local max_attempts=30
     local attempt=0
     while [ $attempt -lt $max_attempts ]; do
-        if docker exec ollama curl -sf http://localhost:11434/api/tags >/dev/null 2>&1 || \
-           curl -sf http://localhost:11434/api/tags >/dev/null 2>&1; then
+        if docker exec ollama curl -sf http://localhost:11434/api/tags >/dev/null 2>&1; then
             log "✓ Ollama is responding"
             break
         fi
         attempt=$((attempt + 1))
-        echo -n "  ⏳ Attempt $attempt/$max_attempts..."
         sleep 2
-        echo -ne "\r"
     done
     
     if [ $attempt -eq $max_attempts ]; then
-        log_warning "Ollama may still be starting (not critical)"
+        log_warning "Ollama may still be starting"
     fi
     echo ""
     
     # Wait for OpenWebUI
-    log "Checking OpenWebUI (port 3000)..."
+    log "Checking OpenWebUI..."
     attempt=0
-    max_attempts=60  # 2 minutes
+    max_attempts=60
     while [ $attempt -lt $max_attempts ]; do
-        if curl -sf http://localhost:3000 >/dev/null 2>&1; then
+        if docker exec open-webui curl -sf http://localhost:8080 >/dev/null 2>&1; then
             log "✓ OpenWebUI is responding"
             break
         fi
         attempt=$((attempt + 1))
-        echo -n "  ⏳ Attempt $attempt/$max_attempts (waiting for database init)..."
         sleep 2
-        echo -ne "\r"
     done
     
     if [ $attempt -eq $max_attempts ]; then
@@ -531,22 +526,26 @@ verify_installation() {
     echo ""
     
     # Wait for Nginx
-    log "Checking Nginx (port 80)..."
+    log "Checking Nginx proxy..."
     attempt=0
     max_attempts=10
+    local protocol="http"
+    
+    if [ "$INSTALLATION_MODE" = "advanced" ]; then
+        protocol="https"
+    fi
+    
     while [ $attempt -lt $max_attempts ]; do
-        if curl -sf http://localhost >/dev/null 2>&1; then
-            log "✓ Nginx is responding"
+        if curl -sf -k "${protocol}://localhost" >/dev/null 2>&1; then
+            log "✓ Nginx proxy is responding"
             break
         fi
         attempt=$((attempt + 1))
-        echo -n "  ⏳ Attempt $attempt/$max_attempts..."
         sleep 2
-        echo -ne "\r"
     done
     
     if [ $attempt -eq $max_attempts ]; then
-        log_warning "Nginx may have issues connecting to OpenWebUI"
+        log_warning "Nginx may have issues"
     fi
     echo ""
     
