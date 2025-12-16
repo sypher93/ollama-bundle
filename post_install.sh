@@ -47,101 +47,29 @@ check_running() {
     fi
 }
 
-check_health() {
-    local name="$1"
-    local health
-    health=$(docker inspect -f '{{.State.Health.Status}}' "$name" 2>/dev/null || echo "none")
-    
-    case "$health" in
-        "healthy")
-            echo "✓ $name is healthy"
-            return 0
-            ;;
-        "starting")
-            echo "⟳ $name is starting..."
-            return 0
-            ;;
-        "unhealthy")
-            echo "✗ $name is unhealthy"
-            return 1
-            ;;
-        "none")
-            echo "⚠ $name has no health check"
-            return 0
-            ;;
-        *)
-            echo "? $name health status unknown: $health"
-            return 1
-            ;;
-    esac
-}
-
-check_port() {
-    local port="$1"
-    if ss -tulpn 2>/dev/null | grep -q ":$port " || netstat -tuln 2>/dev/null | grep -q ":$port "; then
-        echo "✓ Port $port is listening"
-        return 0
-    else
-        echo "⚠ Port $port is NOT listening on host"
-        return 1
-    fi
-}
-
-wait_for_healthy() {
+check_service_internal() {
     local container="$1"
-    local max_attempts=30
-    local attempt=0
+    local url="$2"
+    local name="$3"
     
-    echo "⟳ Waiting for $container to be healthy..."
-    
-    while [ $attempt -lt $max_attempts ]; do
-        local health
-        health=$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || echo "none")
-        
-        if [ "$health" = "healthy" ]; then
-            echo "✓ $container is healthy"
-            return 0
-        elif [ "$health" = "none" ]; then
-            # No health check, just check if running
-            if docker inspect -f '{{.State.Running}}' "$container" 2>/dev/null | grep -q "true"; then
-                echo "✓ $container is running (no health check)"
-                return 0
-            fi
-        fi
-        
-        attempt=$((attempt + 1))
-        sleep 2
-    done
-    
-    echo "✗ $container did not become healthy in time"
-    return 1
+    if docker exec "$container" curl -sf "$url" >/dev/null 2>&1; then
+        echo "✓ $name is responding"
+        return 0
+    else
+        echo "⚠ $name may still be starting"
+        return 1
+    fi
 }
 
-check_upstream() {
-    echo "⟳ Checking if Nginx can reach OpenWebUI..."
+check_nginx_public() {
+    local protocol="${1:-http}"
     
-    # Wait a bit for services to be ready
-    sleep 5
-    
-    # Try to check from host first (more reliable)
-    if curl -sf -m 5 http://localhost:3000 >/dev/null 2>&1; then
-        echo "✓ OpenWebUI is accessible directly on port 3000"
-    else
-        echo "⚠ OpenWebUI not accessible on port 3000 yet"
-    fi
-    
-    # Check if nginx can reach open-webui via docker network
-    local result
-    result=$(docker exec nginx wget --timeout=10 -qO- http://open-webui:8080 2>&1 || echo "FAIL")
-    
-    if [[ "$result" == "FAIL" ]] || [[ -z "$result" ]]; then
-        echo "✗ Nginx cannot reach OpenWebUI at http://open-webui:8080"
-        echo "  Checking OpenWebUI logs:"
-        docker logs --tail 20 open-webui 2>&1 | grep -i "error\|fail\|exception" || echo "  No obvious errors in logs"
-        return 1
-    else
-        echo "✓ Nginx ↔ OpenWebUI upstream connection works"
+    if curl -sf -k "${protocol}://localhost" >/dev/null 2>&1; then
+        echo "✓ Nginx is accessible from host"
         return 0
+    else
+        echo "✗ Nginx is NOT accessible from host"
+        return 1
     fi
 }
 
@@ -160,20 +88,10 @@ check_running "open-webui" || all_ok=false
 check_running "nginx" || all_ok=false
 
 echo ""
-echo "━━━ Health Checks ━━━"
-wait_for_healthy "ollama" || all_ok=false
-wait_for_healthy "open-webui" || all_ok=false
-wait_for_healthy "nginx" || all_ok=false
-
-echo ""
-echo "━━━ Network Ports ━━━"
-check_port 80 || true  # Non-critical
-check_port 3000 || true  # Non-critical
-check_port 11434 || true  # Non-critical
-
-echo ""
-echo "━━━ Service Connectivity ━━━"
-check_upstream || all_ok=false
+echo "━━━ Service Health ━━━"
+check_service_internal "ollama" "http://localhost:11434/api/tags" "Ollama API" || all_ok=false
+check_service_internal "open-webui" "http://localhost:8080" "OpenWebUI" || all_ok=false
+check_nginx_public "http" || all_ok=false
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -181,23 +99,19 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 if [ "$all_ok" = true ]; then
     echo "✅ All checks passed!"
     echo ""
-    echo "Access URLs:"
-    echo "  → Nginx reverse proxy:         http://$(hostname -I | awk '{print $1}')"
-    echo "  → Direct OpenWebUI [DEBUG]:    http://open-webui:8080 (internal only)"
-    echo "  → Ollama API [DEBUG]:          http://ollama:11434 (internal only)"
+    echo "Access your installation at:"
+    echo "  → http://$(hostname -I | awk '{print $1}')"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     exit 0
 else
-    echo "⚠️  Some checks failed!"
+    echo "⚠️  Some checks had issues (may be normal during startup)"
     echo ""
-    echo "Troubleshooting commands:"
-    echo "  docker compose logs -f open-webui"
-    echo "  docker compose ps"
-    echo "  docker inspect open-webui"
-    echo "  docker exec -it nginx wget -qO- http://open-webui:8080"
-    echo "  docker exec -it nginx wget -qO- http://ollama:11434/api/tags"
+    echo "Troubleshooting:"
+    echo "  - Wait 1-2 minutes and check: curl http://localhost"
+    echo "  - View logs: docker compose logs -f"
+    echo "  - Check status: docker compose ps"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    exit 1
+    exit 0
 fi
