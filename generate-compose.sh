@@ -46,15 +46,19 @@ generate_compose() {
             gpu_indices+="$i"
         done
         
-        gpu_config="    deploy:
+        gpu_config="    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - CUDA_VISIBLE_DEVICES=$gpu_indices
+    deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: $gpu_count
-              capabilities: [gpu]
-    environment:
-      - CUDA_VISIBLE_DEVICES=$gpu_indices"
+              capabilities: [gpu]"
+    else
+        gpu_config="    environment:
+      - OLLAMA_HOST=0.0.0.0:11434"
     fi
 
     cat > "$OUTPUT_FILE" << EOF
@@ -78,6 +82,8 @@ $gpu_config
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
       - WEBUI_SECRET_KEY=\${WEBUI_SECRET_KEY:-$(openssl rand -base64 32)}
+      - HOST=0.0.0.0
+      - PORT=8080
     expose:
       - "8080"
     volumes:
