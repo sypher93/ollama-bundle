@@ -87,21 +87,65 @@ install_dependencies() {
 install_docker() {
     log_step "STEP 2: Installing Docker"
     
-    if command -v docker >/dev/null 2>&1; then
+    # Check if Docker is installed via snap
+    if command -v snap &> /dev/null && snap list docker &> /dev/null 2>&1; then
+        log_warning "Docker is installed via snap"
+        log_warning "Snap Docker has limitations with GPU support and volume mounts"
+        log_warning ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "  ⚠️  Docker Snap Detected"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Docker installed via snap has known issues:"
+        echo "  - NVIDIA GPU support doesn't work properly"
+        echo "  - Volume mount restrictions"
+        echo "  - Limited systemd integration"
+        echo ""
+        echo "It is STRONGLY recommended to reinstall Docker via apt."
+        echo ""
+        read -p "Do you want to reinstall Docker via apt now? [y/N]: " reinstall_docker
+        
+        if [[ "$reinstall_docker" =~ ^[Yy]$ ]]; then
+            log "Removing Docker snap..."
+            snap remove docker >> "$LOG_FILE" 2>&1 || log_warning "Failed to remove Docker snap"
+            sleep 2
+        else
+            log_warning "Continuing with Docker snap (GPU may not work)"
+            log_warning "To reinstall later, run: sudo snap remove docker && curl -fsSL https://get.docker.com | sh"
+            return 0
+        fi
+    fi
+    
+    if command -v docker &> /dev/null && ! snap list docker &> /dev/null 2>&1; then
         DOCKER_VERSION=$(docker --version | awk '{print $3}' | sed 's/,//')
         log "Docker already installed: $DOCKER_VERSION"
-        return 0
+        
+        # Verify it's not a problematic installation
+        if docker info &> /dev/null; then
+            log "✓ Docker is working correctly"
+            return 0
+        else
+            log_warning "Docker command found but not working properly"
+        fi
     fi
     
     log "Downloading Docker installation script..."
     curl -fsSL https://get.docker.com -o /tmp/get-docker.sh >> "$LOG_FILE" 2>&1 || \
         error_exit "Failed to download Docker installer"
     
-    log "Installing Docker..."
+    log "Installing Docker via apt (official method)..."
     sh /tmp/get-docker.sh >> "$LOG_FILE" 2>&1 || error_exit "Failed to install Docker"
+    rm -f /tmp/get-docker.sh
     
     log "Starting and enabling Docker service..."
     systemctl enable --now docker >> "$LOG_FILE" 2>&1 || error_exit "Failed to start Docker"
+    
+    # Add current user to docker group if not root
+    if [ "$SUDO_USER" != "" ] && [ "$SUDO_USER" != "root" ]; then
+        log "Adding user $SUDO_USER to docker group..."
+        usermod -aG docker "$SUDO_USER" >> "$LOG_FILE" 2>&1 || log_warning "Failed to add user to docker group"
+        log_warning "You may need to log out and back in for docker group to take effect"
+    fi
     
     log "✓ Docker installed and started successfully"
 }
@@ -527,8 +571,6 @@ display_final_info() {
     echo ""
     echo "  📊 Service URLs:"
     echo "     - OpenWebUI:  ${protocol}://${DOMAIN}:${port}"
-    echo "     - Ollama API: http://${DOMAIN}:11434"
-    echo "     - Direct UI:  http://${DOMAIN}:3000"
     echo "     - GitHub:     https://github.com/sypher93/ollama-bundle"
     echo ""
     echo "  📝 Installation Mode: $INSTALLATION_MODE"
