@@ -14,7 +14,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_FILE="${SCRIPT_DIR}/installation.log"
+LOG_DIR="${SCRIPT_DIR}/logs"
+LOG_FILE="${LOG_DIR}/installation_$(date +'%Y-%m-%d_%H-%M-%S').log"
+
+# Create logs directory if it doesn't exist
+mkdir -p "$LOG_DIR"
 
 # Global variables (will be set by menus.sh)
 INSTALLATION_MODE="simple"
@@ -75,13 +79,22 @@ install_dependencies() {
     fi
     
     log "Updating package lists..."
-    apt-get update >> "$LOG_FILE" 2>&1 || error_exit "Failed to update package lists"
+    # Show progress in terminal, log only errors
+    if apt-get update 2>&1 | tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null); then
+        log "✓ Package lists updated"
+    else
+        error_exit "Failed to update package lists"
+    fi
     
     log "Installing base dependencies..."
-    apt-get install -y ca-certificates curl gnupg lsb-release wget openssl jq >> "$LOG_FILE" 2>&1 || \
+    # Show progress in terminal, log only errors
+    if apt-get install -y ca-certificates curl gnupg lsb-release wget openssl jq 2>&1 | \
+       tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null) | \
+       grep -E "Setting up|Unpacking|Processing"; then
+        log "✓ System dependencies installed"
+    else
         error_exit "Failed to install base dependencies"
-    
-    log "✓ System dependencies installed"
+    fi
 }
 
 install_docker() {
@@ -130,11 +143,20 @@ install_docker() {
     fi
     
     log "Downloading Docker installation script..."
-    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh >> "$LOG_FILE" 2>&1 || \
+    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh 2>&1 | \
+        tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null) || \
         error_exit "Failed to download Docker installer"
     
     log "Installing Docker via apt (official method)..."
-    sh /tmp/get-docker.sh >> "$LOG_FILE" 2>&1 || error_exit "Failed to install Docker"
+    echo "  (This may take a few minutes, progress shown below)"
+    # Show installation progress in terminal, log errors only
+    if sh /tmp/get-docker.sh 2>&1 | \
+       tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null) | \
+       grep -E "docker|version|Installing|Setting up" || true; then
+        log "✓ Docker installed"
+    else
+        error_exit "Failed to install Docker"
+    fi
     rm -f /tmp/get-docker.sh
     
     log "Starting and enabling Docker service..."
@@ -159,21 +181,26 @@ install_nvidia_toolkit() {
     
     log "Adding NVIDIA Container Toolkit repository..."
     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
-        gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg >> "$LOG_FILE" 2>&1 || \
+        gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg 2>&1 | \
+        tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null) || \
         error_exit "Failed to add NVIDIA GPG key"
     
     curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
         sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' | \
         tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
     
-    apt-get update >> "$LOG_FILE" 2>&1 || error_exit "Failed to update after adding NVIDIA repo"
+    apt-get update 2>&1 | tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null) || \
+        error_exit "Failed to update after adding NVIDIA repo"
     
     log "Installing NVIDIA Container Toolkit..."
-    apt-get install -y nvidia-container-toolkit >> "$LOG_FILE" 2>&1 || \
-        error_exit "Failed to install NVIDIA Container Toolkit"
+    apt-get install -y nvidia-container-toolkit 2>&1 | \
+        tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null) | \
+        grep -E "Setting up|Unpacking" || true
+    log "✓ NVIDIA Container Toolkit installed"
     
     log "Configuring Docker for NVIDIA runtime..."
-    nvidia-ctk runtime configure --runtime=docker >> "$LOG_FILE" 2>&1 || \
+    nvidia-ctk runtime configure --runtime=docker 2>&1 | \
+        tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null) || \
         error_exit "Failed to configure NVIDIA runtime"
     
     # Try to restart Docker with different methods
@@ -468,15 +495,19 @@ start_services() {
     
     log "Pulling Docker images (this may take several minutes)..."
     echo "  This step downloads ~2-3GB of data, please be patient..."
+    echo ""
     
-    # Pull images with progress visible
-    docker compose pull 2>&1 | tee -a "$LOG_FILE" | grep -E "Pulling|Pull complete|Downloaded|Already exists" || {
-        # If grep filters everything out, show we're still working
-        log "  (Downloading in progress, check $LOG_FILE for details)"
-    }
+    # Pull images with progress visible in terminal
+    # Only log start/end, let progress bars show in terminal
+    if docker compose pull 2>&1 | tee -a >(grep -E "Error|error|failed" >> "$LOG_FILE"); then
+        log "✓ Docker images pulled successfully"
+    else
+        error_exit "Failed to pull Docker images"
+    fi
     
+    echo ""
     log "Starting containers..."
-    docker compose up -d >> "$LOG_FILE" 2>&1 || error_exit "Failed to start containers"
+    docker compose up -d 2>&1 | tee -a >(grep -v "^$" >> "$LOG_FILE") || error_exit "Failed to start containers"
     
     log "✓ Services started"
 }
