@@ -21,10 +21,11 @@ fi
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_FILE="$SCRIPT_DIR/installation.log"
+LOG_DIR="${SCRIPT_DIR}/logs"
+LOG_FILE="${LOG_DIR}/installation_$(date +'%Y-%m-%d_%H-%M-%S').log"
 
-# Initialize log file
-: > "$LOG_FILE"
+# Create logs directory if it doesn't exist
+mkdir -p "$LOG_DIR"
 
 # Display banner
 clear
@@ -65,6 +66,8 @@ trap on_exit EXIT
 # Main installation flow
 main() {
     log_step "Starting installation"
+    echo "📝 Log file: $LOG_FILE"
+    echo ""
     
     # Step 1: User interaction
     select_installation_mode
