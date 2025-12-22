@@ -23,7 +23,8 @@ generate_compose() {
     local nginx_ports=""
     local nginx_volumes=""
     local gpu_config=""
-    
+    local ollama_ports=""
+
     # Configure ports and volumes based on installation mode
     if [ "${INSTALLATION_MODE:-simple}" = "simple" ]; then
         nginx_ports='      - "80:80"'
@@ -61,14 +62,22 @@ generate_compose() {
       - OLLAMA_HOST=0.0.0.0:11434"
     fi
 
+    # Configure Ollama ports based on API exposure setting
+    if [ "${EXPOSE_OLLAMA_API:-false}" = "true" ]; then
+        ollama_ports='    ports:
+      - "11434:11434"'
+    else
+        ollama_ports='    expose:
+      - "11434"'
+    fi
+
     cat > "$OUTPUT_FILE" << EOF
 services:
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
     restart: unless-stopped
-    expose:
-      - "11434"
+$ollama_ports
     volumes:
       - ollama:/root/.ollama
 $gpu_config
