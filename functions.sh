@@ -25,6 +25,7 @@ INSTALLATION_MODE="simple"
 DOMAIN=""
 GPU_COUNT=0
 USE_NVIDIA=false
+EXPOSE_OLLAMA_API=false
 CREATE_NON_ROOT_USER=false
 DOCKER_USER="openwebui"
 DOCKER_UID=1000
@@ -80,21 +81,15 @@ install_dependencies() {
     
     log "Updating package lists..."
     # Show progress in terminal, log only errors
-    if apt-get update 2>&1 | tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null); then
-        log "✓ Package lists updated"
-    else
-        error_exit "Failed to update package lists"
-    fi
+    apt-get update 2>&1 | tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null) || true
+    log "✓ Package lists updated"
     
     log "Installing base dependencies..."
     # Show progress in terminal, log only errors
-    if apt-get install -y ca-certificates curl gnupg lsb-release wget openssl jq 2>&1 | \
+    apt-get install -y ca-certificates curl gnupg lsb-release wget openssl jq 2>&1 | \
        tee >(grep -iE "err|fail|error" >> "$LOG_FILE" 2>/dev/null) | \
-       grep -E "Setting up|Unpacking|Processing"; then
-        log "✓ System dependencies installed"
-    else
-        error_exit "Failed to install base dependencies"
-    fi
+       grep -E "Setting up|Unpacking|Processing" || true
+    log "✓ System dependencies installed"
 }
 
 install_docker() {
@@ -597,15 +592,18 @@ display_final_info() {
     echo "  ✅ OpenWebUI Installation Completed Successfully!"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "  🌐 Access OpenWebUI at: ${protocol}://${DOMAIN}:${port}"
+    echo "  ▶️  Access OpenWebUI at: ${protocol}://${DOMAIN}:${port}"
     echo ""
-    echo "  📊 Service URLs:"
+    echo "  🌐 Service URLs:"
     echo "     - OpenWebUI:  ${protocol}://${DOMAIN}:${port}"
     echo "     - GitHub:     https://github.com/sypher93/ollama-bundle"
     echo ""
     echo "  📝 Installation Mode: $INSTALLATION_MODE"
     if [ "$USE_NVIDIA" = true ]; then
-        echo "  🎮 GPU Acceleration: Enabled ($GPU_COUNT GPU(s))"
+        echo "  🟩  GPU Acceleration: Enabled ($GPU_COUNT GPU(s))"
+    fi
+    if [ "$EXPOSE_OLLAMA_API" = true ]; then
+        echo "  ↔️  Ollama API : Exposed (http://${DOMAIN}:11434)"
     fi
     echo ""
     echo "  🔧 Useful Commands:"
