@@ -72,6 +72,7 @@ main() {
     # Step 1: User interaction
     select_installation_mode
     prompt_configuration
+    prompt_ollama_api_exposure
     
     # Step 2: System preparation
     install_dependencies
@@ -91,6 +92,7 @@ main() {
     export INSTALLATION_MODE
     export USE_NVIDIA
     export GPU_COUNT
+    export EXPOSE_OLLAMA_API
     
     if [ -f "$SCRIPT_DIR/generate-compose.sh" ]; then
         bash "$SCRIPT_DIR/generate-compose.sh" >> "$LOG_FILE" 2>&1 || \
@@ -110,13 +112,13 @@ main() {
     
     # Step 8: Post-installation checks
     log_step "Running post-installation verification"
-    if [ -f "$SCRIPT_DIR/post_install.sh" ]; then
-        bash "$SCRIPT_DIR/post_install.sh" || {
+    if [ -f "$SCRIPT_DIR/post-install.sh" ]; then
+        bash "$SCRIPT_DIR/post-install.sh" || {
             log_warning "Post-installation checks had some issues"
             log_warning "Check logs: docker compose logs"
         }
     else
-        log_warning "post_install.sh not found, skipping verification"
+        log_warning "post-install.sh not found, skipping verification"
     fi
     
     # Step 9: Display final information
