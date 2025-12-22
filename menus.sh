@@ -115,3 +115,25 @@ prompt_configuration() {
     echo "✓ Configuration completed"
     echo ""
 }
+
+prompt_ollama_api_exposure() {
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo " Ollama API Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Do you want to expose the Ollama API on the host?"
+    echo ""
+    echo "  • No (default):  API accessible only via Docker network (recommended for security)"
+    echo "  • Yes:           API accessible on host at port 11434 (allows external tools to connect)"
+    echo ""
+    
+    read -rp "Expose Ollama API on host? [y/N]: " expose_api
+    if [[ "$expose_api" =~ ^[Yy]$ ]]; then
+        EXPOSE_OLLAMA_API=true
+        echo "✓ Ollama API will be exposed on port 11434"
+    else
+        EXPOSE_OLLAMA_API=false
+        echo "✓ Ollama API will remain internal (Docker network only)"
+    fi
+    echo ""
+}
