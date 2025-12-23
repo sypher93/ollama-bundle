@@ -53,37 +53,79 @@ prompt_configuration() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     
-    # Get domain/IP
-    while true; do
-        read -rp "Enter your server's IPv4 address or domain: " DOMAIN
-        if [[ -n "$DOMAIN" ]]; then
-            echo "✓ Domain/IP set to: $DOMAIN"
-            break
+    # Automatic IP detection with confirmation
+    echo "Detecting host IP address..."
+    local detected_ip
+    detected_ip=$(hostname -I | awk '{print $1}')
+    
+    if [[ -n "$detected_ip" ]]; then
+        echo "✓ Detected IP: $detected_ip"
+        echo ""
+        read -rp "Use this IP address? [Y/n]: " use_detected_ip
+        
+        if [[ ! "$use_detected_ip" =~ ^[Nn]$ ]]; then
+            DOMAIN="$detected_ip"
+            echo "✓ Using detected IP: $DOMAIN"
         else
-            echo "Domain/IP cannot be empty"
+            # Manual entry
+            while true; do
+                read -rp "Enter your server's IPv4 address or domain: " DOMAIN
+                if [[ -n "$DOMAIN" ]]; then
+                    echo "✓ Domain/IP set to: $DOMAIN"
+                    break
+                else
+                    echo "Domain/IP cannot be empty"
+                fi
+            done
         fi
-    done
+    else
+        # Fallback to manual entry if detection fails
+        echo "⚠ Could not detect IP address automatically"
+        while true; do
+            read -rp "Enter your server's IPv4 address or domain: " DOMAIN
+            if [[ -n "$DOMAIN" ]]; then
+                echo "✓ Domain/IP set to: $DOMAIN"
+                break
+            else
+                echo "Domain/IP cannot be empty"
+            fi
+        done
+    fi
     echo ""
     
     # SSL certificate details (only for advanced mode)
     if [ "$INSTALLATION_MODE" = "advanced" ]; then
         echo "SSL Certificate Details:"
-        read -rp "Country code (C) [US]: " input_country
-        COUNTRY=${input_country:-US}
+        echo ""
+        read -rp "Use default certificate information? [Y/n]: " use_defaults
         
-        read -rp "State (ST) [California]: " input_state
-        STATE=${input_state:-California}
-        
-        read -rp "City (L) [San Francisco]: " input_city
-        CITY=${input_city:-San Francisco}
-        
-        read -rp "Organization (O) [MyOrg]: " input_org
-        ORG=${input_org:-MyOrg}
-        
-        read -rp "Organizational Unit (OU) [IT]: " input_ou
-        ORG_UNIT=${input_ou:-IT}
-        
-        echo "✓ SSL certificate details configured"
+        if [[ ! "$use_defaults" =~ ^[Nn]$ ]]; then
+            # Use predefined defaults
+            COUNTRY="US"
+            STATE="California"
+            CITY="San Francisco"
+            ORG="Self-Signed"
+            ORG_UNIT="IT"
+            echo "✓ Using default certificate information"
+        else
+            # Manual entry
+            read -rp "Country code (C) [US]: " input_country
+            COUNTRY=${input_country:-US}
+            
+            read -rp "State (ST) [California]: " input_state
+            STATE=${input_state:-California}
+            
+            read -rp "City (L) [San Francisco]: " input_city
+            CITY=${input_city:-San Francisco}
+            
+            read -rp "Organization (O) [Self-Signed]: " input_org
+            ORG=${input_org:-Self-Signed}
+            
+            read -rp "Organizational Unit (OU) [IT]: " input_ou
+            ORG_UNIT=${input_ou:-IT}
+            
+            echo "✓ SSL certificate details configured"
+        fi
         echo ""
     fi
     
