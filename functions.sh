@@ -33,7 +33,7 @@ DOCKER_GID=1000
 COUNTRY="US"
 STATE="California"
 CITY="San Francisco"
-ORG="MyOrg"
+ORG="Self-Signed"
 ORG_UNIT="IT"
 
 # Logging functions
@@ -600,7 +600,7 @@ display_final_info() {
     echo ""
     echo "  📝 Installation Mode: $INSTALLATION_MODE"
     if [ "$USE_NVIDIA" = true ]; then
-        echo "  🟩  GPU Acceleration: Enabled ($GPU_COUNT GPU(s))"
+        echo "  🟩 GPU Acceleration: Enabled ($GPU_COUNT GPU(s))"
     fi
     if [ "$EXPOSE_OLLAMA_API" = true ]; then
         echo "  ↔️  Ollama API : Exposed (http://${DOMAIN}:11434)"
