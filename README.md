@@ -1,15 +1,15 @@
 # OpenWebUI + Nginx + Ollama Stack
 **One-command deployment** for a complete AI chat interface with Ollama LLM backend and Nginx reverse proxy.
 
-<div style="text-align: center;">
+<p align="center">
 <a href="https://ibb.co/vCQ6Cc4j"><img src="https://i.ibb.co/qLW3LDYr/ollama-bundle-banner-sypher93.jpg" alt="ollama-bundle-banner-sypher93" border="0"></a>
-</div>
+</p>
 
 ## ✨ Features
 
-<div style="text-align: center;">
+<p align="center">
 <a href="https://imgbb.com/"><img src="https://i.ibb.co/PG0jd8sQ/ai-bundle-deploy-logo-sypher93.png" alt="ai bundle deploy logo sypher93" border="0"></a>
-</div>
+</p>
 
 - 🚀 **Interactive installation** - User-friendly prompts guide you through setup
 - 🤖 **Automated model installation** - Choose and install AI models during setup
