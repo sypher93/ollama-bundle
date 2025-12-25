@@ -73,6 +73,7 @@ main() {
     select_installation_mode
     prompt_configuration
     prompt_ollama_api_exposure
+    prompt_ollama_models
     
     # Step 2: System preparation
     install_dependencies
@@ -110,7 +111,10 @@ main() {
     # Step 7: Wait and verify
     verify_installation
     
-    # Step 8: Post-installation checks
+    # Step 8: Install Ollama models
+    install_ollama_models
+    
+    # Step 9: Post-installation checks
     log_step "Running post-installation verification"
     if [ -f "$SCRIPT_DIR/post-install.sh" ]; then
         bash "$SCRIPT_DIR/post-install.sh" || {
@@ -121,7 +125,7 @@ main() {
         log_warning "post-install.sh not found, skipping verification"
     fi
     
-    # Step 9: Display final information
+    # Step 10: Display final information
     display_final_info
     
     # Success!
