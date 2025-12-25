@@ -1,29 +1,41 @@
 # OpenWebUI + Nginx + Ollama Stack
-
 **One-command deployment** for a complete AI chat interface with Ollama LLM backend and Nginx reverse proxy.
 
+<div style="text-align: center;">
 <a href="https://ibb.co/vCQ6Cc4j"><img src="https://i.ibb.co/qLW3LDYr/ollama-bundle-banner-sypher93.jpg" alt="ollama-bundle-banner-sypher93" border="0"></a>
+</div>
 
-## Features
+## ✨ Features
 
-- 🔧 **Automated installation** - Single script deploys everything
+<div style="text-align: center;">
+<a href="https://imgbb.com/"><img src="https://i.ibb.co/PG0jd8sQ/ai-bundle-deploy-logo-sypher93.png" alt="ai bundle deploy logo sypher93" border="0"></a>
+</div>
+
+- 🚀 **Interactive installation** - User-friendly prompts guide you through setup
+- 🤖 **Automated model installation** - Choose and install AI models during setup
 - 🐳 **Docker Compose** - Nginx + OpenWebUI + Ollama in one stack
 - 🔒 **SSL/TLS support** - HTTP (simple) or HTTPS (advanced) modes
-- 🎮 **GPU acceleration** - Optional NVIDIA GPU support
+- 🎮 **GPU acceleration** - Automatic NVIDIA GPU detection and configuration
+- 🧠 **Smart recommendations** - Hardware-aware model suggestions
+- 🌐 **API exposure control** - Choose to expose Ollama API or keep it internal
+- 📊 **Resource detection** - Automatic IP, RAM, GPU, and disk detection
+- 📝 **Timestamped logs** - Installation history preserved in `logs/` directory
 - 📦 **Modular architecture** - Easy to customize and maintain
 
-## Prerequisites
+## 📋 Prerequisites
 
 - **OS**: Debian 12+ or Ubuntu 22.04+ (Tested on Debian 13 / Ubuntu Server 24.04)
 - **Access**: Root or sudo privileges
-- **CPU**: 4+ Cores
-- **Disk**: 50GB+ free space
-- **RAM**: 8GB+ recommended
+- **CPU**: 4+ cores recommended
+- **Disk**: 20GB+ free space (50GB+ for multiple models)
+- **RAM**: 
+  - 4GB minimum (small models only)
+  - 8GB recommended (7B models)
+  - 16GB+ for larger models
 - **GPU** (optional): NVIDIA GPU with drivers installed
 - **Network**: Open ports 80 (HTTP) and/or 443 (HTTPS)
 
-## Quick Start
-
+## 🚀 Quick Start
 ```bash
 # Clone repository
 git clone https://github.com/sypher93/ollama-bundle.git
@@ -34,73 +46,146 @@ sudo chmod +x *.sh
 sudo ./install.sh
 ```
 
-### Installation Options
+The installer will guide you through:
+1. **Installation mode** - Simple (HTTP) or Advanced (HTTPS)
+2. **Server configuration** - Auto-detected IP with manual override option
+3. **SSL certificates** - Use defaults or customize (Advanced mode)
+4. **GPU detection** - Automatic NVIDIA GPU configuration
+5. **Ollama API** - Expose on host or keep internal
+6. **Model selection** - Choose AI models with hardware-specific recommendations
 
-**Simple Mode** (HTTP)
+## 🎯 Installation Modes
+
+### Simple Mode (HTTP)
 - Quick setup for testing/development
 - HTTP only (port 80)
 - No SSL certificates
+- Auto-detected IP address
 
-**Advanced Mode** (HTTPS)
+### Advanced Mode (HTTPS)
 - Production-ready with SSL
-- Self-signed certificates
+- Self-signed or custom certificates
 - HTTP → HTTPS redirect with TLS 1.3
 - Enhanced security headers
+- Configurable certificate details
 
-Trivy scan (optional) on the Docker images used during installation on both options, output of this scan is recorded in `installation.log`.
+**Security scan**: Optional Trivy scan on Docker images during installation (output in logs).
 
-## Post-Installation
+## 🤖 AI Model Installation
 
-If the installation went smoothly, you should see this result :
+During installation, the script will:
+1. **Detect your hardware** (RAM, GPU VRAM, disk space)
+2. **Recommend compatible models** based on your system
+3. **Allow model selection** with size and requirement information
 
-<a href="https://imgbb.com/"><img src="https://i.ibb.co/gbxGkKmh/ollama-bundle-installer-success-sypher93.png" alt="ollama bundle installer success sypher93" border="0"></a>
+### Available Models
 
-**Seamlessly Switching from HTTP to HTTPS:**
+| Model | Size | RAM (CPU) | VRAM (GPU) | Best For |
+|-------|------|-----------|------------|----------|
+| llama3.2:3b | 2GB | 4GB | 4GB | Fast responses, general use |
+| llama3.1:8b | 4.7GB | 8GB | 8GB | Balanced performance |
+| mistral:7b | 4GB | 8GB | 8GB | General tasks |
+| codellama:13b | 7GB | 16GB | 12GB | Code generation |
+| qwen2.5:7b | 4.7GB | 8GB | 8GB | Multilingual support |
+| phi3:medium | 7.9GB | 16GB | 12GB | Microsoft model |
+| gemma2:9b | 5.4GB | 12GB | 10GB | Google model |
 
-Start the installation over HTTPS at any time by rerunning `sudo ./install.sh` and choosing option 2 (Advanced HTTPS); the installer will detect your existing HTTP deployment, switch it to HTTPS without redownloading the containers, generate an SSL certificate, and add the secure Nginx configuration automatically.
+**Hardware Recommendations:**
+- **24GB+ VRAM**: All models including 70B+
+- **12GB VRAM**: Models up to 13B
+- **8GB VRAM**: Models up to 8B
+- **CPU-only (16GB RAM)**: Models up to 8B (slower)
+- **CPU-only (8GB RAM)**: Only 3B models recommended
+
+## 📁 Project Structure
+```
+ollama-bundle/
+├── install.sh             # Main installer
+├── functions.sh           # Core functions
+├── menus.sh               # Interactive prompts
+├── generate-compose.sh    # Docker Compose generator
+├── generate-config.sh     # Nginx config generator
+├── post-install.sh        # Post-installation checks
+├── logs/                  # Installation logs (timestamped)
+│   └── installation_YYYY-MM-DD_HH-MM-SS.log
+├── conf.d/                # Nginx configuration
+├── ssl/                   # SSL certificates (Advanced mode)
+└── docker-compose.yml     # Generated stack configuration
+```
+
+## 🎉 Post-Installation
+
+### Successful Installation
+
+<a href="https://imgbb.com/"><img src="https://i.ibb.co/dJ1R8vvZ/ollama-bundle-install-complete-sypher93.png" alt="ollama bundle install complete sypher93" border="0"></a>
 
 ### 1. Access OpenWebUI
 
-Open your browser and navigate to:
+Open your browser:
 - **Simple mode**: `http://YOUR_SERVER_IP`
 - **Advanced mode**: `https://YOUR_SERVER_IP`
 
 ### 2. Create Admin Account
 
-Register on first visit - the first user becomes admin.
+First user to register becomes admin.
 
-### 3. Download AI Models
+### 3. Start Using AI
 
-**Option A: Via Web Interface**
-
-Navigate to **Models** tab and pull models directly:
-
-<a href="https://ibb.co/rKNZHfz8"><img src="https://i.ibb.co/DPT7Qgvc/manage-models-ollama-bundle.png" alt="manage-models-ollama-bundle" border="0"></a>
-
-You can now start a chat with the LLM of your choice :
+If you installed models during setup, they're ready to use immediately:
 
 <a href="https://ibb.co/bg8zHMwm"><img src="https://i.ibb.co/jv1gVP0f/chat-llm-ollama-bundle.png" alt="chat-llm-ollama-bundle" border="0"></a>
 
-**Option B: Via Command Line**
+### 4. Manage Models (Optional)
 
+**Via Web Interface:**
+Navigate to **Models** tab to add or remove models:
+
+<a href="https://ibb.co/rKNZHfz8"><img src="https://i.ibb.co/DPT7Qgvc/manage-models-ollama-bundle.png" alt="manage-models-ollama-bundle" border="0"></a>
+
+**Via Command Line:**
 ```bash
 # Pull a model
-docker exec -it ollama ollama pull llama2
+docker exec ollama ollama pull llama3.2:3b
 
-# List available models
-docker exec -it ollama ollama list
+# List installed models
+docker exec ollama ollama list
 
 # Remove a model
-docker exec -it ollama ollama rm llama2
+docker exec ollama ollama rm llama3.2:3b
 ```
 
-Popular models:
-- `llama2` - Meta's general-purpose model
-- `mistral` - Fast and efficient
-- `codellama` - Optimized for code
-- `phi` - Microsoft's small but capable model
+## Management Commands
+```bash
+# View logs
+docker compose logs -f
 
-## 🔧 Management
+# Restart services
+docker compose restart
+
+# Stop services
+docker compose down
+
+# Update stack
+docker compose pull
+docker compose up -d
+
+# Check status
+docker compose ps
+```
+
+## Switching from HTTP to HTTPS
+
+Switch to HTTPS anytime by rerunning the installer:
+```bash
+sudo ./install.sh
+```
+Select **Advanced mode** - the installer will:
+- Detect existing deployment
+- Generate SSL certificates
+- Update configuration automatically
+- No container re-download needed
+
+## Management
 
 ### Monitoring GPU Usage
 
@@ -135,20 +220,6 @@ docker compose up -d            # Start all
 ```bash
 docker compose pull
 docker compose up -d
-```
-
-## Project Structure
-
-```
-ollama-bundle/
-├── install.sh             # Main installer
-├── functions.sh           # Core functions
-├── menus.sh               # User interaction
-├── generate-compose.sh    # Docker Compose generator
-├── post_install.sh        # Verification checks
-├── conf.d/                # Nginx configuration
-├── ssl/                   # SSL certificates (advanced mode)
-└── docker-compose.yml     # Generated compose file
 ```
 
 ## Troubleshooting
@@ -205,8 +276,17 @@ MIT License - See [LICENSE](LICENSE) file for details
 ## Author
 
 **sypher93**
-- GitHub: [@sypher93](https://github.com/sypher93)
+GitHub: [@sypher93](https://github.com/sypher93)
+
+
+## Links
+
+- GitHub: https://github.com/sypher93/ollama-bundle
+- OpenWebUI: https://github.com/open-webui/open-webui
+- Ollama: https://ollama.ai
 
 ---
 
 ⭐ **Star this repo** if you find it useful!
+
+**Made with ❤️ for the self-hosted AI community**
