@@ -26,6 +26,7 @@ DOMAIN=""
 GPU_COUNT=0
 USE_NVIDIA=false
 EXPOSE_OLLAMA_API=false
+OLLAMA_MODELS=()
 CREATE_NON_ROOT_USER=false
 DOCKER_USER="openwebui"
 DOCKER_UID=1000
@@ -605,6 +606,9 @@ display_final_info() {
     if [ "$EXPOSE_OLLAMA_API" = true ]; then
         echo "  ↔️  Ollama API : Exposed (http://${DOMAIN}:11434)"
     fi
+    if [ ${#OLLAMA_MODELS[@]} -gt 0 ]; then
+        echo "  🤖 Installed Models: ${OLLAMA_MODELS[*]}"
+    fi
     echo ""
     echo "  🔧 Useful Commands:"
     echo "     - View logs:        docker compose logs -f"
@@ -618,4 +622,52 @@ display_final_info() {
     fi
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
+}
+
+install_ollama_models() {
+    if [ ${#OLLAMA_MODELS[@]} -eq 0 ]; then
+        log "No models selected for installation"
+        return 0
+    fi
+    
+    log_step "Installing Ollama Models"
+    
+    log "Selected models: ${OLLAMA_MODELS[*]}"
+    echo ""
+    echo "⚠️  Model download can take 5-30 minutes depending on:"
+    echo "   - Model size (2GB to 70GB)"
+    echo "   - Your internet connection"
+    echo "   - Number of models selected"
+    echo ""
+    read -p "Continue with model installation? [Y/n]: " continue_install
+    
+    if [[ "$continue_install" =~ ^[Nn]$ ]]; then
+        log "Model installation skipped"
+        log "You can install models later with: docker exec ollama ollama pull <model-name>"
+        return 0
+    fi
+    
+    local total_models=${#OLLAMA_MODELS[@]}
+    local current=0
+    
+    for model in "${OLLAMA_MODELS[@]}"; do
+        current=$((current + 1))
+        log "[$current/$total_models] Pulling model: $model"
+        echo ""
+        
+        # Pull the model with progress visible
+        if docker exec ollama ollama pull "$model" 2>&1 | tee >(grep -iE "error|fail" >> "$LOG_FILE" 2>/dev/null); then
+            log "✓ Model $model installed successfully"
+        else
+            log_warning "Failed to install model: $model"
+            log_warning "You can try installing it manually later with:"
+            log_warning "  docker exec ollama ollama pull $model"
+        fi
+        echo ""
+    done
+    
+    log "✓ Model installation completed"
+    echo ""
+    log "Verifying installed models..."
+    docker exec ollama ollama list || log_warning "Could not list models"
 }
